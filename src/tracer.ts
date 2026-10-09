@@ -136,7 +136,6 @@ export function traceCode(source: string): TraceStep[] {
       if (!code || code === "}" || code === "else {" || code === "else")
         continue;
 
-      const undefinedVariableCheck = code.match(/^([A-Za-z_$][\w$]*)\s*(\+\+|--|\+=|-=|\*=|\/=|=)\s*(.+)$/);
       const before = snapshot(state);
       let action = "Read this line.";
       let explanation = "This line does not change the state yet.";
@@ -166,9 +165,6 @@ export function traceCode(source: string): TraceStep[] {
       const arrayPop = code.match(/^([A-Za-z_$][\w$]*)\.pop\(\)$/);
 
       try {
-        if (assignment && !(name in state)) {
-          throw new Error(`"${name}" does not exist yet. Create it before using it.`);
-        }
         if (functionDeclaration) {
           const [, name,paramsText] = functionDeclaration;
           const params = paramsText.split(",").map((param) => param.trim()).filter(Boolean);
@@ -224,6 +220,9 @@ export function traceCode(source: string): TraceStep[] {
           }
         } else if (assignment) {
           const [, name, operator, expression] = assignment;
+          if (!(name in state)) {
+            throw new Error(`"${name}" does not exist yet. Create it before using it.`);
+          }
           const beforeValue = state[name];
           const value = evaluate(expression, state);
           if (operator === "=") state[name] = value;
